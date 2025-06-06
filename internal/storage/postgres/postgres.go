@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"url-shortner/internal/config"
-	"url-shortner/internal/storage"
+	"url-shortener/internal/config"
+	"url-shortener/internal/storage"
 )
 
 const (

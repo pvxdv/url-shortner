@@ -1,4 +1,4 @@
-env : "dev" # local, dev, prod
+env : "local" # local, dev, prod
 storage:
   db_host: "localhost"
   db_port: 5432

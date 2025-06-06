@@ -2,18 +2,24 @@ package main
 
 import (
 	"context"
+	"log/slog"
+	"net/http"
+	"os"
+	"url-shortener/internal/http-server/handlers/url/save"
+	"url-shortener/internal/storage/postgres"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"log/slog"
-	"os"
-	"url-shortner/internal/config"
-	"url-shortner/internal/lib/logger/sl"
-	"url-shortner/internal/storage/postgres"
+
+	"url-shortener/internal/config"
+	mwLogger "url-shortener/internal/http-server/middleware/logger"
+	"url-shortener/internal/lib/logger/sl"
 )
 
 const (
 	envLocal = "local"
-	envProd
+	envProd  = "prod"
+	envDev   = "dev"
 )
 
 func main() {
@@ -33,24 +39,44 @@ func main() {
 	router := chi.NewRouter()
 
 	router.Use(middleware.RequestID)
-	// TODO: run server
+	router.Use(middleware.RealIP)
+	router.Use(mwLogger.New(log))
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+
+	router.Post("/url", save.New(context.TODO(), log, storage))
+
+	log.Info("starting server", slog.String("address", cfg.Address))
+
+	srv := http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Error("failed to start server", sl.Err(err))
+	}
+
+	log.Error("stopped server", slog.String("address", cfg.Address))
 }
 
 func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger
 
 	switch env {
-	case "local":
+	case envLocal:
 		log = slog.New(
 			slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
-
-	case "dev":
+	case envDev:
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 		)
 
-	case "prod":
+	case envProd:
 		log = slog.New(
 			slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 		)
