@@ -71,7 +71,7 @@ func (s *Storage) SaveURL(ctx context.Context, urlToSave string, alias string) (
 	return id, nil
 }
 
-func (s *Storage) GetUrl(ctx context.Context, alias string) (string, error) {
+func (s *Storage) GetURL(ctx context.Context, alias string) (string, error) {
 	const fn = "storage.postgres.GetUrl"
 
 	stmt, err := s.db.Prepare(ctx, "getUrl", "SELECT url FROM url WHERE alias = $1")

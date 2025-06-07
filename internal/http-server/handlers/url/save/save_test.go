@@ -54,7 +54,7 @@ func TestSaveHandler(t *testing.T) {
 			alias:     "test_alias",
 			url:       "https://google.com",
 			respError: "failed to save url",
-			mockError: errors.New("unexpected error"),
+			mockError: errors.New("internal server error"),
 		},
 	}
 	for _, tc := range tests {
@@ -75,7 +75,7 @@ func TestSaveHandler(t *testing.T) {
 
 			input := fmt.Sprintf(`{"url": "%s", "alias": "%s"}`, tc.url, tc.alias)
 
-			req, err := http.NewRequest(http.MethodPost, "/save", bytes.NewReader([]byte(input)))
+			req, err := http.NewRequest(http.MethodPost, "/url", bytes.NewReader([]byte(input)))
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -90,6 +90,10 @@ func TestSaveHandler(t *testing.T) {
 			require.NoError(t, json.Unmarshal([]byte(body), &resp))
 
 			require.Equal(t, tc.respError, resp.Error)
+
+			if tc.respError == "" {
+				require.Greater(t, len(resp.Alias), 1)
+			}
 
 			// TODO: add more checks
 		})

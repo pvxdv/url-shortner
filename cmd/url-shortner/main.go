@@ -5,15 +5,16 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"url-shortener/internal/http-server/handlers/url/save"
-	"url-shortener/internal/storage/postgres"
+	"url-shortener/internal/http-server/handlers/url/redirect"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"url-shortener/internal/config"
+	"url-shortener/internal/http-server/handlers/url/save"
 	mwLogger "url-shortener/internal/http-server/middleware/logger"
 	"url-shortener/internal/lib/logger/sl"
+	"url-shortener/internal/storage/postgres"
 )
 
 const (
@@ -27,7 +28,11 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 
-	log.Info("starting url-shortener", slog.String("env", cfg.Env))
+	log.Info(
+		"starting url-shortener",
+		slog.String("env", cfg.Env),
+		slog.String("version", "0.0.0"),
+	)
 	log.Debug("debug mode enabled")
 
 	storage, err := postgres.New(context.TODO(), cfg)
@@ -45,6 +50,9 @@ func main() {
 	router.Use(middleware.URLFormat)
 
 	router.Post("/url", save.New(context.TODO(), log, storage))
+	router.Get("/{alias}", redirect.New(context.TODO(), log, storage))
+	router.Delete("/url/{alias}", delete.New(context.TODO(), log, storage))
+	router.Put("/url/{alias}", update.New(context.TODO(), log, storage))
 
 	log.Info("starting server", slog.String("address", cfg.Address))
 
